@@ -2,12 +2,11 @@
 -- IGNOU BCA 6th Semester (BCSP-064) Seed Data Script
 -- Project Title: AI-Driven IT Service Desk and Automated Ticket Triage System
 -- Default Seed Credentials:
---   Customer: student@university.ac.in (Password: customer123)
---   Agent 1:  agent_smith (Password: agent123)
---   Agent 2:  agent_kumar (Password: agent123)
+--   Customer 1: student_rahul / rahul@ignou.ac.in   (Password: student123)
+--   Customer 2: faculty_anita / anita@ignou.ac.in    (Password: student123)
+--   Agent 1:    agent_smith   / smith@servicedesk.org (Password: agent123)
+--   Agent 2:    agent_kumar   / kumar@servicedesk.org (Password: agent123)
 -- ============================================================================
-
-USE service_desk_db;
 
 -- Standardized Departments (Requirement 1)
 INSERT INTO departments (department_id, department_name, description) VALUES
@@ -20,14 +19,14 @@ INSERT INTO departments (department_id, department_name, description) VALUES
 ON DUPLICATE KEY UPDATE department_name=VALUES(department_name);
 
 -- Default Demo Users
--- Note: bcrypt hashes generated with 10 salt rounds
--- 'customer123' -> $2b$10$E5z7bQ...
--- 'agent123' -> $2b$10$O0KqG...
+-- Note: bcrypt hashes generated with 10 salt rounds via bcryptjs
+-- 'student123' -> $2b$10$N1EgKSo.s/IY5XxbsTJuGutvGBdaNBKHBaQ6hlncnRb9lcQQPKfI6
+-- 'agent123'   -> $2b$10$A49HVcMsZxwEyHW0h5tZVeAXbYaodbFMiP/.ZLZ3DOqF3jpNVos9y
 INSERT INTO users (user_id, username, email, password_hash, role) VALUES
-(1, 'student_rahul', 'rahul@ignou.ac.in', '$2a$10$j8N5Kx4Pj.Vw1o7Wd8Jre.VbC56D7v1Kq7u7CqV1cZ2nJ2vYgPkeO', 'Customer'),
-(2, 'faculty_anita', 'anita@ignou.ac.in', '$2a$10$j8N5Kx4Pj.Vw1o7Wd8Jre.VbC56D7v1Kq7u7CqV1cZ2nJ2vYgPkeO', 'Customer'),
-(3, 'agent_smith', 'smith@servicedesk.org', '$2a$10$Z3m4G9GkVfN8hYQpX0fReOnbL67F8u9Tq5t7WqV1cZ2nJ2vYgPkeO', 'Agent'),
-(4, 'agent_kumar', 'kumar@servicedesk.org', '$2a$10$Z3m4G9GkVfN8hYQpX0fReOnbL67F8u9Tq5t7WqV1cZ2nJ2vYgPkeO', 'Agent')
+(1, 'student_rahul', 'rahul@ignou.ac.in', '$2b$10$N1EgKSo.s/IY5XxbsTJuGutvGBdaNBKHBaQ6hlncnRb9lcQQPKfI6', 'Customer'),
+(2, 'faculty_anita', 'anita@ignou.ac.in', '$2b$10$N1EgKSo.s/IY5XxbsTJuGutvGBdaNBKHBaQ6hlncnRb9lcQQPKfI6', 'Customer'),
+(3, 'agent_smith', 'smith@servicedesk.org', '$2b$10$A49HVcMsZxwEyHW0h5tZVeAXbYaodbFMiP/.ZLZ3DOqF3jpNVos9y', 'Agent'),
+(4, 'agent_kumar', 'kumar@servicedesk.org', '$2b$10$A49HVcMsZxwEyHW0h5tZVeAXbYaodbFMiP/.ZLZ3DOqF3jpNVos9y', 'Agent')
 ON DUPLICATE KEY UPDATE username=VALUES(username);
 
 -- Realistic Historical Tickets (Supporting MTTR & SLA Analytics)
