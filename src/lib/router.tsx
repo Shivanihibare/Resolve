@@ -19,7 +19,7 @@ interface RouterContextType {
 
 const RouterContext = createContext<RouterContextType | null>(null);
 
-function normalizePath(path: string): string {
+export function normalizePath(path: string): string {
   if (!path) return '/';
   const clean = path.replace(/\/+/g, '/');
   if (clean.length > 1 && clean.endsWith('/')) {
@@ -28,31 +28,93 @@ function normalizePath(path: string): string {
   return clean.startsWith('/') ? clean : `/${clean}`;
 }
 
+export function cleanBasePath(base: string): string {
+  if (!base || base === '/') return '';
+  let clean = base.replace(/\/+/g, '/');
+  if (!clean.startsWith('/') && !clean.startsWith('.')) {
+    clean = `/${clean}`;
+  }
+  if (clean.length > 1 && clean.endsWith('/')) {
+    clean = clean.slice(0, -1);
+  }
+  return clean === '/' ? '' : clean;
+}
+
+export function stripBasePath(fullPath: string, basePath: string): string {
+  const cleanBase = cleanBasePath(basePath);
+  const normalized = normalizePath(fullPath);
+  if (!cleanBase) return normalized;
+
+  if (normalized === cleanBase) {
+    return '/';
+  }
+  if (normalized.startsWith(`${cleanBase}/`)) {
+    return normalizePath(normalized.slice(cleanBase.length));
+  }
+  return normalized;
+}
+
+export function withBasePath(path: string, basePath: string): string {
+  const cleanBase = cleanBasePath(basePath);
+  if (!cleanBase) return normalizePath(path);
+
+  // If path is an external URL, protocol, hash-only, or query-only, leave as is
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(path) || path.startsWith('#') || path.startsWith('?')) {
+    return path;
+  }
+
+  // Preserve query string or hash
+  const match = path.match(/^([^?#]*)(.*)$/);
+  const pathname = match ? match[1] : path;
+  const searchAndHash = match ? match[2] : '';
+
+  const cleanPath = normalizePath(pathname);
+  let resolved: string;
+  if (cleanPath === cleanBase || cleanPath.startsWith(`${cleanBase}/`)) {
+    resolved = cleanPath === cleanBase ? `${cleanBase}/` : cleanPath;
+  } else if (cleanPath === '/') {
+    resolved = `${cleanBase}/`;
+  } else {
+    resolved = `${cleanBase}${cleanPath}`;
+  }
+
+  return `${resolved}${searchAndHash}`;
+}
+
 export const BrowserRouter: React.FC<{ children: ReactNode; basePath?: string }> = ({
   children,
-  basePath = '',
+  basePath: propBasePath,
 }) => {
+  const effectiveBasePath =
+    propBasePath ?? (import.meta.env.VITE_BASE_PATH || import.meta.env.BASE_URL || '/');
+
   const [pathname, setPathname] = useState<string>(() => {
-    return normalizePath(window.location.pathname);
+    return stripBasePath(window.location.pathname, effectiveBasePath);
   });
   const [outletContent, setOutletContent] = useState<ReactNode | null>(null);
 
   useEffect(() => {
     const handlePopState = () => {
-      setPathname(normalizePath(window.location.pathname));
+      setPathname(stripBasePath(window.location.pathname, effectiveBasePath));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [effectiveBasePath]);
 
   const navigate = (to: string, options?: { replace?: boolean }) => {
-    const target = normalizePath(to);
+    const match = to.match(/^([^?#]*)(.*)$/);
+    const rawPath = match ? match[1] : to;
+    const searchAndHash = match ? match[2] : '';
+
+    const internalPath = stripBasePath(rawPath, effectiveBasePath);
+    const targetUrl = withBasePath(internalPath, effectiveBasePath) + searchAndHash;
+
     if (options?.replace) {
-      window.history.replaceState({}, '', target);
+      window.history.replaceState({}, '', targetUrl);
     } else {
-      window.history.pushState({}, '', target);
+      window.history.pushState({}, '', targetUrl);
     }
-    setPathname(target);
+    setPathname(internalPath);
     window.scrollTo(0, 0);
   };
 
@@ -60,11 +122,11 @@ export const BrowserRouter: React.FC<{ children: ReactNode; basePath?: string }>
     () => ({
       pathname,
       navigate,
-      basePath,
+      basePath: effectiveBasePath,
       outletContent,
       setOutletContent,
     }),
-    [pathname, basePath, outletContent]
+    [pathname, effectiveBasePath, outletContent]
   );
 
   return <RouterContext.Provider value={value}>{children}</RouterContext.Provider>;
@@ -114,6 +176,9 @@ export interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement>
 
 export const Link: React.FC<LinkProps> = ({ to, replace, children, className, onClick, ...props }) => {
   const navigate = useNavigate();
+  const ctx = useContext(RouterContext);
+  const basePath = ctx?.basePath ?? (import.meta.env.VITE_BASE_PATH || import.meta.env.BASE_URL || '/');
+  const href = withBasePath(to, basePath);
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (onClick) onClick(e);
@@ -132,7 +197,7 @@ export const Link: React.FC<LinkProps> = ({ to, replace, children, className, on
   };
 
   return (
-    <a href={to} onClick={handleClick} className={className} {...props}>
+    <a href={href} onClick={handleClick} className={className} {...props}>
       {children}
     </a>
   );
