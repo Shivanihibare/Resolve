@@ -42,6 +42,9 @@ export interface TriageResult {
   raw_response: string;
 }
 
+// Primary model: Gemini 3.5 Flash-Lite (stable, supports generateContent + structured JSON output)
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
+
 /**
  * Executes AI triage on raw customer issue description.
  * Adheres strictly to Algorithm 2 of project proposal:
@@ -59,7 +62,7 @@ export async function triageTicketWithAI(issueDescription: string): Promise<Tria
     suggested_solution: 'Initial automated triage unavailable. Assigned to General Support queue for manual review.',
     confidence_score: 0.5,
     reasoning: 'System executed automated fallback due to external AI API unavailability or timeout.',
-    model_name: 'gemini-2.5-flash',
+    model_name: GEMINI_MODEL,
     tokens_used: 0,
     latency_ms: 0,
     status: 'FALLBACK',
@@ -99,85 +102,42 @@ RULES:
 4. "confidence_score": Decimal between 0.0 and 1.0.
 5. "reasoning": 1-2 sentence justification for the chosen department and priority.`;
 
-    let modelName = 'gemini-2.5-flash';
-    let response;
-    try {
-      response = await ai.models.generateContent({
-        model: modelName,
-        contents: `Raw Issue Description:\n"""\n${issueDescription}\n"""`,
-        config: {
-          systemInstruction,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              category: {
-                type: Type.STRING,
-                enum: [...STANDARDIZED_DEPARTMENTS],
-                description: 'Target IT department classification',
-              },
-              priority: {
-                type: Type.STRING,
-                enum: [...STANDARDIZED_PRIORITIES],
-                description: 'Urgency priority level',
-              },
-              suggested_solution: {
-                type: Type.STRING,
-                description: 'Suggested troubleshooting steps or boilerplate agent response',
-              },
-              confidence_score: {
-                type: Type.NUMBER,
-                description: 'Confidence between 0.0 and 1.0',
-              },
-              reasoning: {
-                type: Type.STRING,
-                description: 'Brief justification for priority and department',
-              },
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: `Raw Issue Description:\n"""\n${issueDescription}\n"""`,
+      config: {
+        systemInstruction,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            category: {
+              type: Type.STRING,
+              enum: [...STANDARDIZED_DEPARTMENTS],
+              description: 'Target IT department classification',
             },
-            required: ['category', 'priority', 'suggested_solution'],
-          },
-        },
-      });
-    } catch (modelErr: any) {
-      // Fallback model trial if specific version alias is updated
-      modelName = 'gemini-1.5-flash';
-      response = await ai.models.generateContent({
-        model: modelName,
-        contents: `Raw Issue Description:\n"""\n${issueDescription}\n"""`,
-        config: {
-          systemInstruction,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              category: {
-                type: Type.STRING,
-                enum: [...STANDARDIZED_DEPARTMENTS],
-                description: 'Target IT department classification',
-              },
-              priority: {
-                type: Type.STRING,
-                enum: [...STANDARDIZED_PRIORITIES],
-                description: 'Urgency priority level',
-              },
-              suggested_solution: {
-                type: Type.STRING,
-                description: 'Suggested troubleshooting steps or boilerplate agent response',
-              },
-              confidence_score: {
-                type: Type.NUMBER,
-                description: 'Confidence between 0.0 and 1.0',
-              },
-              reasoning: {
-                type: Type.STRING,
-                description: 'Brief justification for priority and department',
-              },
+            priority: {
+              type: Type.STRING,
+              enum: [...STANDARDIZED_PRIORITIES],
+              description: 'Urgency priority level',
             },
-            required: ['category', 'priority', 'suggested_solution'],
+            suggested_solution: {
+              type: Type.STRING,
+              description: 'Suggested troubleshooting steps or boilerplate agent response',
+            },
+            confidence_score: {
+              type: Type.NUMBER,
+              description: 'Confidence between 0.0 and 1.0',
+            },
+            reasoning: {
+              type: Type.STRING,
+              description: 'Brief justification for priority and department',
+            },
           },
+          required: ['category', 'priority', 'suggested_solution'],
         },
-      });
-    }
+      },
+    });
 
     const latencyMs = Date.now() - startTime;
     const rawText = response.text || '{}';
@@ -199,7 +159,7 @@ RULES:
       suggested_solution,
       confidence_score,
       reasoning,
-      model_name: 'gemini-2.5-flash',
+      model_name: GEMINI_MODEL,
       tokens_used: tokensUsed,
       latency_ms: latencyMs,
       status: 'SUCCESS',
