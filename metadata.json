@@ -1,0 +1,6 @@
+{
+  "name": "AI-Driven IT Service Desk and Automated Ticket Triage System",
+  "description": "Academic BCA project (IGNOU BCSP-064) for automated IT service desk ticket triage, AI classification, priority routing, agent workflow, and MTTR analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
