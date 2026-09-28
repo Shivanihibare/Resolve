@@ -43,6 +43,22 @@ async function startServer() {
     next();
   });
 
+  // Body parser for JSON REST requests
+  app.use(express.json());
+
+  // Mount API router
+  app.use('/api/v1', apiRouter);
+
+  // Health check endpoint
+  app.get('/api/health', (_req, res) => {
+    res.json({
+      status: 'healthy',
+      project: 'AI-Driven IT Service Desk and Automated Ticket Triage System',
+      course: 'IGNOU BCSP-064',
+      uptime: process.uptime(),
+    });
+  });
+
   // Development: Mount Vite middleware for React SPA
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
