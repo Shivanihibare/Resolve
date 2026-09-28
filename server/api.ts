@@ -12,7 +12,8 @@ import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { db, User } from './db.ts';
+import { db } from './db.ts';
+import type { User } from './db.ts';
 import { triageTicketWithAI, STANDARDIZED_DEPARTMENTS, STANDARDIZED_PRIORITIES } from './aiService.ts';
 import { emailService } from './emailService.ts';
 
