@@ -20,20 +20,27 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-  // Body parser for JSON REST requests
-  app.use(express.json());
+  // ---- CORS Middleware (before body parser and routes) ----
+  const ALLOWED_ORIGINS = new Set([
+    'https://shivanihibare.github.io',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ]);
 
-  // Mount API router
-  app.use('/api/v1', apiRouter);
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && ALLOWED_ORIGINS.has(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // Health check endpoint
-  app.get('/api/health', (_req, res) => {
-    res.json({
-      status: 'healthy',
-      project: 'AI-Driven IT Service Desk and Automated Ticket Triage System',
-      course: 'IGNOU BCSP-064',
-      uptime: process.uptime(),
-    });
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
+    }
+    next();
   });
 
   // Development: Mount Vite middleware for React SPA
